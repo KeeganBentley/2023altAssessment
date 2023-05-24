@@ -75,7 +75,8 @@ class UI() extends Recipient[GameState] {
             Kitchen -> (1, 6),
             Hall -> (5, 6),
             Pantry -> (5, 8),
-            Workshop -> (8, 8),
+            Study -> (8, 8),
+            Workshop -> (11, 8),
             Boatshed -> (21, 8),
         )
     }
@@ -102,7 +103,8 @@ class UI() extends Recipient[GameState] {
             Kitchen -> (1, 7),
             Hall -> (8, 6),
             Pantry -> (5, 9),
-            Workshop -> (8, 9),
+            Study -> (8, 9),
+            Workshop -> (11, 9),
             Boatshed -> (21, 9),
         )
     }
@@ -130,33 +132,47 @@ class UI() extends Recipient[GameState] {
     /** A group that contains the current weapon labels */
     val weaponGroup = new Group(weaponLabels().toSeq*)
 
-    /** Creates a set of markers for each player on the map */
-    def playerIcons() = for (p, (x, y)) <- gameState.playerLocation yield
+    val playerIcons = (for p <- Player.values yield 
         val color = Color.web(p.colour)
-        new Group(
-            new Circle {
+        p -> new Circle {
                 radius = squareSize / 4 
-                centerX = x * squareSize + squareSize / 2
-                centerY = y * squareSize + squareSize / 2
                 fill = color
                 stroke = Color.Black
             }
-        )
+    ).toMap
+
+    /** Creates a set of markers for each player on the map */
+    def alivePlayerIcons() = for (p, (x, y)) <- gameState.playerLocation yield        
+        playerIcons(p)
+    
 
     /** A group that contains the current player icons */
-    val playerGroup = new Group(playerIcons().toSeq*)
+    val playerGroup = new Group(alivePlayerIcons().toSeq*)
 
     /** Receives a new gamestate as a message */
     override def send(g:GameState):Unit = 
         _gameState = g
         Platform.runLater {
             weaponGroup.children = weaponLabels()
-            playerGroup.children = playerIcons()
+            playerGroup.children = alivePlayerIcons()
+
+            for (p, (x, y)) <- g.playerLocation do 
+                val icon = playerIcons(p)
+                val timeline = new Timeline {
+                    cycleCount = 1
+                    keyFrames = Seq(
+                        at (250.ms) { Set(
+                            icon.centerX -> (x * squareSize + squareSize / 2),
+                            icon.centerY -> (y * squareSize + squareSize / 2)
+                        )}
+                    )
+                }
+                timeline.play()
         }
 
         
     val playing = BooleanProperty(false)
-    var tickInterval = 1e9
+    var tickInterval = 5e8
 
     // Time of last tick
     private var lastTime = 0L

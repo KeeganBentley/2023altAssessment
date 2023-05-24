@@ -12,7 +12,7 @@ import scala.util.Random
 enum Room(val char:Char, val passable:Boolean = true, val murderEligible:Boolean = true):
     case DiningRoom extends Room('D')
     case Conservatory extends Room('C')
-    case Pantry extends Room('R')
+    case Pantry extends Room('P')
     case Hall extends Room('h')
     case Lounge extends Room('L')
     case Study extends Room('S')
@@ -35,9 +35,9 @@ val houseString = """|########################
                      |#DDD#h#LLL#CCC#TT#GGooo#
                      |##.##h######.##TT.GGooo#
                      |#KKK.hhhhhhhhh.TT#GGooo#
-                     |#KKK######.####TT#GGooo#
-                     |#KKK.PP#WWWWWW#TT#GGGBB#
-                     |#KKK#PP#WWWWWW#TT#GGGBB#
+                     |#KKK#####.##.##TT#GGooo#
+                     |#KKK.PP#SS#WWW#TT#GGGBB#
+                     |#KKK#PP#SS#WWW#TT#GGGBB#
                      |########################""".stripMargin
 
 

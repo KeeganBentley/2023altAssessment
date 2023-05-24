@@ -38,15 +38,16 @@ case class GameState(
 
   /** The state after a player has moved a step */
   def move(p:Player, d:Direction):GameState = 
-    val actor = playerActor(p)
-    val l = playerLocation(p)
-    val newLoc = l.move(d)
-    GameState(
-      playerActor,
-      playerLocation + (p -> (if isPassable(newLoc) then newLoc else l)),
-      weaponRoom
-    )
-
+    if playerLocation.contains(p) then 
+      val actor = playerActor(p)
+      val l = playerLocation(p)
+      val newLoc = l.move(d)
+      GameState(
+        playerActor,
+        playerLocation + (p -> (if isPassable(newLoc) then newLoc else l)),
+        weaponRoom
+      )
+    else this
 }
 
 object GameState {

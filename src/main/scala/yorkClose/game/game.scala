@@ -21,4 +21,9 @@ enum Weapon:
     case Cleaver
     case CheeseWire
     case Oar
+    case Pistol
+    case Mallet
+    case Rope
+    case Knife
+    case Screwdriver
 

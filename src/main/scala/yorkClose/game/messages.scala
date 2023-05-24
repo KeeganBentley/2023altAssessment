@@ -7,7 +7,7 @@ import com.wbillingsley.amdram.*
   */
 enum Message:
   /** Received every tick */
-  case TurnUpdate(you:Player, position:Location, room:Room, visiblePlayers:Set[Player], visibleWeapons:Set[Weapon])
+  case TurnUpdate(you:Player, location:Location, room:Room, visiblePlayers:Set[Player], visibleWeapons:Set[Weapon])
     
   /** Received by all players when a player is murdered */
   case Scream(player:Player)

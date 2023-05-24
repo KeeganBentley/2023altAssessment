@@ -15,10 +15,10 @@ import scala.util.Random
   * @param usedWeapons - weapons that have disappeared
   * @param knownVictims - victims you have heard scream
   */
-case class PlayerState(headingTo:Option[Room], suspects:Seq[Player], weaponsSeen:Map[Weapon, Room], usedWeapons:Seq[Weapon], knownVictims:Seq[Player])    
+case class PlayerState(goingTo:Room, suspects:Seq[Player], weaponsSeen:Map[Weapon, Room], usedWeapons:Seq[Weapon], knownVictims:Seq[Player])    
 
 object PlayerState:
-    def empty = PlayerState(None, Player.values.toSeq, Map.empty, Seq.empty, Seq.empty)
+    def empty = PlayerState(randomRooms.head, Player.values.toSeq, Map.empty, Seq.empty, Seq.empty)
 
 /**
   * You are not the murderer.
@@ -36,12 +36,16 @@ def player(p:Player, location:Location):MessageHandler[Message] =
 def player(playerState:PlayerState):MessageHandler[Message] = MessageHandler { (msg, context) => 
 
     msg match
-        case Message.TurnUpdate(me, position, room, visiblePlayers, visibleWeapons) =>
+        case Message.TurnUpdate(me, location, room, visiblePlayers, visibleWeapons) =>
             // We'd like you to do better than this!
-            gameActor ! (me, Command.Move(Random.shuffle(position.availableDirections).head))
+            if room == playerState.goingTo then
+                player(playerState.copy(goingTo = randomRooms.head))
+            else 
+                gameActor ! (me, Command.Move(location.shortestDirectionTo(playerState.goingTo)))
+                player(playerState)
 
         case _ =>
-            ()
+            player(playerState)
 
     
     

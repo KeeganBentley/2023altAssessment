@@ -69,7 +69,7 @@ def startedGame(
 
     // When we receive a command from a player, we queue it to execute on the tick
     case (player, command) => 
-      info(s"$player $command")
+      trace(s"$player $command")
       startedGame(state, ui, (player, command) :: queued)
 
     // A tick moves the game forward

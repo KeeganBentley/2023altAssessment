@@ -14,10 +14,31 @@ import game.*
   * @param location The (x, y) location the player has initially spawned in
   * @return
   */
-def murderer(player:Player, location:Location):MessageHandler[Message] = murderer(randomRooms.head)
+def murderer(player:Player, location:Location):MessageHandler[Message] = 
+    info(s"$player is the muderer")
+    val room = house(location)
+    murderer(randomRooms.filter(_ != room).head)
 
 def murderer(goingTo:Room):MessageHandler[Message] = MessageHandler { (msg, context) =>
+  msg match 
+
+    case Message.TurnUpdate(me, position, room, visiblePlayers, visibleWeapons) =>
+        if visiblePlayers.size == 1 && visibleWeapons.nonEmpty then 
+            gameActor ! (me, Command.Murder(visiblePlayers.head, visibleWeapons.head))
+
+        if room == goingTo then 
+            val next = randomRooms.filter(_ != room).head
+            info(s"Heading to $next")
+            murderer(next)
+        else 
+            val shortest = position.shortestDirectionTo(goingTo)
+            info(s"Shortest way to $goingTo is $shortest")
+            gameActor ! (me, Command.Move(shortest))
+            murderer(goingTo)
+
+    case _ => ()
 
 
+        
 
 }
