@@ -29,28 +29,30 @@ class UI() extends Recipient[GameState] {
 
     private var _gameState = GameState.empty
 
+    val roomColours = Map(
+        Room.DiningRoom -> Color.TAN,
+        Room.Conservatory -> Color.OLDLACE,
+        Room.Pantry -> Color.PAPAYAWHIP,
+        Room.Hall -> Color.LAVENDERBLUSH,
+        Room.Lounge -> Color.LAVENDER,
+        Room.Study -> Color.GHOSTWHITE,
+        Room.Kitchen -> Color.LIGHTGOLDENRODYELLOW,
+        Room.Garden -> Color.LIGHTGREEN,
+        Room.Terrace -> Color.LINEN,
+        Room.Workshop -> Color.LIGHTBLUE,
+        Room.Boatshed -> Color.GOLDENROD,
+        Room.Lake -> Color.CORNFLOWERBLUE,
+        Room.Door -> Color.LIGHTGRAY,
+        Room.Wall -> Color.DARKGREY,
+    )
+
     class Square(location:Location, tile:Room) {
         import Room.*
 
         private val square = new Rectangle {
             width = squareSize
             height = squareSize
-            fill = tile match {
-                case DiningRoom => Color.TAN
-                case Conservatory => Color.OLDLACE
-                case Pantry => Color.PAPAYAWHIP
-                case Hall => Color.LAVENDERBLUSH
-                case Lounge => Color.LAVENDER
-                case Study => Color.GHOSTWHITE
-                case Kitchen => Color.LIGHTGOLDENRODYELLOW
-                case Garden => Color.LIGHTGREEN
-                case Terrace => Color.LINEN
-                case Workshop => Color.LIGHTBLUE
-                case Boatshed => Color.GOLDENROD
-                case Lake => Color.CORNFLOWERBLUE
-                case Door => Color.LIGHTGRAY
-                case Wall => Color.DARKGREY
-            }
+            fill = roomColours(tile)
         }
 
         val ui = new Group {
@@ -155,6 +157,7 @@ class UI() extends Recipient[GameState] {
         Platform.runLater {
             weaponGroup.children = weaponLabels()
             playerGroup.children = alivePlayerIcons()
+            playerTable.refresh()
 
             for (p, (x, y)) <- g.playerLocation do 
                 val icon = playerIcons(p)
@@ -169,6 +172,36 @@ class UI() extends Recipient[GameState] {
                 }
                 timeline.play()
         }
+
+
+
+    val players = ObservableBuffer.from(Player.values)
+    val playerTable = new TableView[Player](players) {
+        columns ++= Seq(
+            new TableColumn[Player, Player] {
+                text = "Player"
+                
+                cellValueFactory = x => ObjectProperty(x.value)
+
+                cellFactory = (cell, p) => {
+                    cell.text = p.name
+                    cell.textFill = Color.web(p.colour)
+                    cell.style = "-fx-background-color: #999; -fx-border-style: solid; -fx-border-width: 1px;"
+                }
+            },
+            new TableColumn[Player, Option[Room]] {
+                text = "Location"
+                
+                cellValueFactory = x => ObjectProperty(gameState.playerRoom.get(x.value))
+
+                cellFactory = (cell, r) => {
+                    cell.text = r.map(_.toString).getOrElse("Deceased")
+                    cell.textFill = r.map(rr => roomColours(rr)).getOrElse(Color.DarkRed)
+                    cell.style = "-fx-background-color: #999; -fx-border-style: solid; -fx-border-width: 1px;"
+                }
+            }
+        )
+    }
 
         
     val playing = BooleanProperty(false)
@@ -194,7 +227,8 @@ class UI() extends Recipient[GameState] {
     val subscene = new HBox(
         new VBox(
             new Group(fixedBackground, weaponGroup, playerGroup),
-            new HBox(5, startStop)
+            new HBox(5, startStop),
+            playerTable
         ),
     )
 

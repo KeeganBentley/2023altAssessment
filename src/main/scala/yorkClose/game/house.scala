@@ -36,7 +36,7 @@ val houseString = """|########################
                      |##.##h######.##TT.GGooo#
                      |#KKK.hhhhhhhhh.TT#GGooo#
                      |#KKK#####.##.##TT#GGooo#
-                     |#KKK.PP#SS#WWW#TT#GGGBB#
+                     |#KKK.PP#SS.WWW#TT#GGGBB#
                      |#KKK#PP#SS#WWW#TT#GGGBB#
                      |########################""".stripMargin
 

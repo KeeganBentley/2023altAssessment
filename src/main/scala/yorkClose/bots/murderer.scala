@@ -7,8 +7,9 @@ import game.*
 /**
   * You are the murderer.
   * 
-  * This function needs to remain, because this is how the Game spawns the players.
-  * However, upon receiving a message (e.g. the first Tick), you can change to whatever handler you define
+  * Students should not need to edit this file, though it is useful as an example.
+  * 
+  * The murderer goes randomly from room to room, looking for an opportunity to strike.
   *
   * @param player The Player this actor is playing (e.g. Player.Pink)
   * @param location The (x, y) location the player has initially spawned in
@@ -19,20 +20,23 @@ def murderer(player:Player, location:Location):MessageHandler[Message] =
     val room = house(location)
     murderer(randomRooms.filter(_ != room).head)
 
+/** The murderer's only piece of state is which room it's going to. */
 def murderer(goingTo:Room):MessageHandler[Message] = MessageHandler { (msg, context) =>
   msg match 
 
     case Message.TurnUpdate(me, position, room, visiblePlayers, visibleWeapons) =>
+        // Check if there is a murder available
         if visiblePlayers.size == 1 && visibleWeapons.nonEmpty then 
             gameActor ! (me, Command.Murder(visiblePlayers.head, visibleWeapons.head))
 
+        // Check if it has reached its destination room (in which case, pick a new one)
         if room == goingTo then 
             val next = randomRooms.filter(_ != room).head
-            info(s"Heading to $next")
+            info(s"$me is heading to $next")
             murderer(next)
         else 
             val shortest = position.shortestDirectionTo(goingTo)
-            info(s"Shortest way to $goingTo is $shortest")
+            debug(s"Shortest way to $goingTo is $shortest")
             gameActor ! (me, Command.Move(shortest))
             murderer(goingTo)
 

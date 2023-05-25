@@ -36,8 +36,8 @@ def player(p:Player, location:Location):MessageHandler[Message] =
 def player(playerState:PlayerState):MessageHandler[Message] = MessageHandler { (msg, context) => 
 
     msg match
-        case Message.TurnUpdate(me, location, room, visiblePlayers, visibleWeapons) =>
-            // We'd like you to do better than this!
+        case Message.TurnUpdate(me, location, room, visiblePlayers, visibleWeapons) =>            
+            // This code makes the player randomly travel from room to room
             if room == playerState.goingTo then
                 player(playerState.copy(goingTo = randomRooms.head))
             else 

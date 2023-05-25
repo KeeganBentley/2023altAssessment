@@ -85,6 +85,7 @@ def startedGame(
           // Check that the murderer, victim, and weapon are all in the same room
           if s.canMurderHappen(p, victim, weapon) then 
             s = s.murder(victim, weapon)
+            info(s"$victim has been murdered!")
             s.playerActor(victim) ! Message.YouHaveBeenMurdered
             for remaining <- s.playerLocation.keySet do
               s.playerActor(remaining) ! Message.Scream(victim)
