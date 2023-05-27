@@ -3,6 +3,8 @@ package yorkClose.game
 import com.wbillingsley.amdram.*
 import scala.util.Random
 
+case class Murder(murderer:Player, victim:Player, weapon:Weapon, room:Room)
+
 /**
   * The game state is simply the players and their locations. We also keep the Recipient for each player, so we can
   * send them messages.
@@ -12,7 +14,8 @@ import scala.util.Random
 case class GameState(
     playerActor:Map[Player, Recipient[Message]],
     playerLocation: Map[Player, Location],
-    weaponRoom: Map[Weapon, Room]
+    weaponRoom: Map[Weapon, Room],
+    murders: List[Murder]
 ) {
 
   /** A derived map of which players are in which rooms */
@@ -34,7 +37,22 @@ case class GameState(
     && playersInRoom(playerRoom(murderer)).size == 2
 
   /** The state after a player is murdered */
-  def murder(p:Player, w:Weapon):GameState = GameState(playerActor, playerLocation.removed(p), weaponRoom.removed(w))
+  def murder(murderer:Player, victim:Player, weapon:Weapon):GameState = 
+    GameState(
+      playerActor, playerLocation.removed(victim), weaponRoom.removed(weapon), 
+      Murder(murderer, victim, weapon, playerRoom(victim)) :: murders
+    )
+
+  /** 
+   * Checks an accusation. Note that the answers only have to be right individually, not in combination.
+   * Brown has killed Blue with the Poker and Pink with the Oar, an accusation that they killed Pink with the Poker is acceptable.
+   */
+  def checkAccusation(murderer:Player, victim:Player, weapon:Weapon, room:Room):Boolean = {
+    murders.exists(_.murderer == murderer)
+    && murders.exists(_.victim == victim)
+    && murders.exists(_.weapon == weapon)
+    && murders.exists(_.room == room)
+  }
 
   /** The state after a player has moved a step */
   def move(p:Player, d:Direction):GameState = 
@@ -45,7 +63,8 @@ case class GameState(
       GameState(
         playerActor,
         playerLocation + (p -> (if isPassable(newLoc) then newLoc else l)),
-        weaponRoom
+        weaponRoom,
+        murders
       )
     else this
 }
@@ -54,6 +73,7 @@ object GameState {
   def empty = GameState(
     Map.empty,
     Map.empty,
-    Weapon.values.zip(randomRooms).toMap
+    Weapon.values.zip(randomRooms).toMap,
+    Nil
   )
 }

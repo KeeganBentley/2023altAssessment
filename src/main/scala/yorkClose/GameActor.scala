@@ -4,7 +4,15 @@ import com.wbillingsley.amdram.*
 import game.* 
 import bots.*
 
+import scala.concurrent.ExecutionContext.Implicits.global
+
 import scala.util.Random
+
+/**
+  * The actor system is a top-level "given" instance so that it is automatically found where it
+  * is needed
+  */
+given troupe:Troupe = SingleEcTroupe()
 
 /**
   * The game actor is a globally visible actor.
@@ -42,13 +50,16 @@ def unstartedGame:MessageHandler[GameMessage] = MessageHandler { (msg, context) 
       ).toMap
 
       // Create the starting game state
-      val state = GameState(playerActors, playerLocations, weaponLocations)
+      val state = GameState(playerActors, playerLocations, weaponLocations, Nil)
 
       // Update the user interface
       ui ! state
 
       // Become a started game
       startedGame(state, ui, Nil)
+
+    // The game has not started!
+    case _ => ()
 }
 
 /**
@@ -67,6 +78,32 @@ def startedGame(
       error("Received an initialise message, but already started")      
       startedGame(state, ui, queued)
 
+    // An accusation has been made. It is handled immediately (not queued)
+    case ElizabethDacreCommand.Accuse(mm, vv, ww, rr) =>
+      info(s"The ghost of Elizabeth Dacre hears the accusation that $mm killed $vv. At least one murder used the $ww. And at least one murder took place in the $rr.")
+      if state.checkAccusation(mm, vv, ww, rr) then 
+        info(
+          "The accusation was valid! The full list of murders was: \n" + 
+          (for Murder(mm, vv, ww, rr) <- state.murders.reverse yield
+            s"  $mm killed $vv with the $ww in the $rr"
+          ).mkString("\n")
+        )
+        for p <- state.playerLocation.keySet do 
+          state.playerActor(p) ! Message.Victory
+          startedGame(state.copy(playerLocation = state.playerLocation.removed(mm)), ui, queued)
+
+      else
+        info(
+          "The accusation was NOT valid! The players are doomed and the murderer slips away into the night. The full list of murders was: \n" + 
+          (for Murder(mm, vv, ww, rr) <- state.murders.reverse yield
+            s"  $mm killed $vv with the $ww in the $rr"
+          ).mkString("\n")
+        )
+        for p <- state.playerLocation.keySet do 
+          state.playerActor(p) ! Message.Defeat
+          startedGame(state.copy(playerLocation = Map.empty), ui, queued)
+
+
     // When we receive a command from a player, we queue it to execute on the tick
     case (player, command) => 
       trace(s"$player $command")
@@ -84,7 +121,7 @@ def startedGame(
         case Command.Murder(victim, weapon) => 
           // Check that the murderer, victim, and weapon are all in the same room
           if s.canMurderHappen(p, victim, weapon) then 
-            s = s.murder(victim, weapon)
+            s = s.murder(p, victim, weapon)
             info(s"$victim has been murdered!")
             s.playerActor(victim) ! Message.YouHaveBeenMurdered
             for remaining <- s.playerLocation.keySet do

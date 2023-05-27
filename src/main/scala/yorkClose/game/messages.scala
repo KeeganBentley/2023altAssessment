@@ -18,6 +18,9 @@ enum Message:
   /** Received by all remaining players if the game is won */
   case Victory
 
+  /** Received by all remaining players if an invalid accusation is made */
+  case Defeat
+
   /** A ghostly message telling you to go to a random room */
   case GoTo(room:Room)
 
@@ -29,6 +32,6 @@ enum GameControl:
 /**
   * Messages received by the game actor
   */
-type GameMessage = GameControl | (Player, Command)
+type GameMessage = GameControl | (Player, Command) | ElizabethDacreCommand
 
 
