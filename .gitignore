@@ -39,3 +39,7 @@ tmp
 .vscode/
 project/metals.sbt
 project/project
+
+
+# scala-cli
+.scala-build/

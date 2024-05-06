@@ -1,3 +1,7 @@
+//> using repositories sonatype:snapshots
+//> using dep com.wbillingsley::amdram::0.0.0+10-993bfbd8-SNAPSHOT
+//> using dep org.scalafx::scalafx::20.0.0-R31
+
 package yorkClose.ui
 
 import scalafx.Includes._
