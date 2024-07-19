@@ -15,10 +15,10 @@ import scala.util.Random
   * @param usedWeapons - weapons that have disappeared
   * @param knownVictims - victims you have heard scream
   */
-case class PlayerState(goingTo:Room, suspects:Seq[Player], weaponsSeen:Map[Weapon, Room], usedWeapons:Seq[Weapon], knownVictims:Seq[Player])    
+case class PlayerState(goingTo:Room, suspects:Seq[Player], weaponsSeen:Map[Weapon, Room], usedWeapons:Seq[Weapon], knownVictims:Seq[Player], heardScream:java.lang.Boolean)    
 
 object PlayerState:
-    def empty = PlayerState(randomRooms.head, Player.values.toSeq, Map.empty, Seq.empty, Seq.empty)
+    def empty = PlayerState(randomRooms.head, Player.values.toSeq, Map.empty, Seq.empty, Seq.empty, false)
 
 /**
   * You are not the murderer.
@@ -31,22 +31,54 @@ object PlayerState:
   * @return
   */
 def player(p:Player, location:Location):MessageHandler[Message] = 
-    player(PlayerState.empty)
+    val initialSuspects = Player.values.toSeq.filterNot(_ == p)
+    player(PlayerState.empty.copy(suspects = initialSuspects))
+    
     
 def player(playerState:PlayerState):MessageHandler[Message] = MessageHandler { (msg, context) => 
 
     msg match
-        case Message.TurnUpdate(me, location, room, visiblePlayers, visibleWeapons) =>            
-            // This code makes the player randomly travel from room to room
-            if room == playerState.goingTo then
-                player(playerState.copy(goingTo = randomRooms.head))
+        case Message.TurnUpdate(me, location, room, visiblePlayers, visibleWeapons) =>  
+            val updatedSuspects = playerState.suspects.filterNot(playerState.knownVictims.contains)
+
+            // Check if we have an accusation to make, requires only 1 suspect a victim, weapon and room
+            if updatedSuspects.length == 1 && playerState.usedWeapons.nonEmpty then
+                    val accused = updatedSuspects.head
+                    val victim = playerState.knownVictims.head
+                    val usedWeapon = playerState.usedWeapons.head
+                    val weaponLocation = playerState.weaponsSeen(usedWeapon)
+                    gameActor ! ElizabethDacreCommand.Accuse(accused, victim, usedWeapon, weaponLocation)
+            
+            // If we have heard a scream we will eliminate all visible players from our suspects ignoring doorways
+            val finalSuspects =
+                if room == Room.Door then
+                    updatedSuspects
+                else if playerState.heardScream then
+                    updatedSuspects.filterNot(visiblePlayers.contains)
+
+                else
+                    updatedSuspects
+            // If we see a weapon we will update our weaponsSeen map 
+            val (updatedWeapons, updatedUsed) = 
+                if visibleWeapons.nonEmpty then
+                    (visibleWeapons.foldLeft(playerState.weaponsSeen) { (acc, weapon) => acc + (weapon -> room) }, playerState.usedWeapons)
+                // If not we check if we know what weapon was used from this room
+                else
+                    val missingWeapons = playerState.weaponsSeen.filter { case (weapon, seenRoom) => seenRoom == room && !visibleWeapons.contains(weapon) && !playerState.usedWeapons.contains(weapon) }.keys
+                    (playerState.weaponsSeen, playerState.usedWeapons ++ missingWeapons)
+
+            val updatedState = playerState.copy(weaponsSeen = updatedWeapons, usedWeapons = updatedUsed, suspects = finalSuspects, heardScream = false)  
+                
+            if room == updatedState.goingTo then
+                player(updatedState.copy(goingTo = randomRooms.head))
             else 
-                gameActor ! (me, Command.Move(location.shortestDirectionTo(playerState.goingTo)))
-                player(playerState)
+                gameActor ! (me, Command.Move(location.shortestDirectionTo(updatedState.goingTo)))
+                player(updatedState)
+
+        case Message.Scream(screamer) =>
+            val updatedPlayerState = playerState.copy(knownVictims = playerState.knownVictims :+ screamer, heardScream = true)
+            player(updatedPlayerState)
 
         case _ =>
             player(playerState)
-
-    
-    
 }

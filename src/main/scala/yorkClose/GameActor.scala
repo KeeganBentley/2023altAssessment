@@ -90,7 +90,8 @@ def startedGame(
         )
         for p <- state.playerLocation.keySet do 
           state.playerActor(p) ! Message.Victory
-          startedGame(state.copy(playerLocation = state.playerLocation.removed(mm)), ui, queued)
+
+        startedGame(state.copy(playerLocation = state.playerLocation.removed(mm)), ui, queued)
 
       else
         info(
@@ -101,7 +102,7 @@ def startedGame(
         )
         for p <- state.playerLocation.keySet do 
           state.playerActor(p) ! Message.Defeat
-          startedGame(state.copy(playerLocation = Map.empty), ui, queued)
+        startedGame(state.copy(playerLocation = Map.empty), ui, queued)
 
 
     // When we receive a command from a player, we queue it to execute on the tick
@@ -113,6 +114,25 @@ def startedGame(
     case GameControl.Tick =>
 
       // Rewrite this as a foldLeft
+      val s = queued.reverse.foldLeft(state) { (s, pc) =>
+        pc match {
+          case (p, Command.Move(direction)) => 
+            s.move(p, direction)
+        
+          case (p, Command.Murder(victim, weapon)) => 
+            // Check that the murderer, victim, and weapon are all in the same room
+            if s.canMurderHappen(p, victim, weapon) then 
+              val newState = s.murder(p, victim, weapon)
+              info(s"$victim has been murdered!")
+              newState.playerActor(victim) ! Message.YouHaveBeenMurdered
+              newState.playerLocation.keySet.foreach { remaining =>
+                newState.playerActor(remaining) ! Message.Scream(victim)
+              }
+              newState
+            else s
+        }
+      }
+      /* Rewrite this as a foldLeft
       var s = state
       for (p, command) <- queued.reverse do command match {
         case Command.Move(direction) => 
@@ -127,7 +147,7 @@ def startedGame(
             for remaining <- s.playerLocation.keySet do
               s.playerActor(remaining) ! Message.Scream(victim)
 
-      }
+      }*/
       
       for p <- s.playerLocation.keySet do 
         val room = s.playerRoom(p)
